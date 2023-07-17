@@ -16,23 +16,21 @@ import {
   FileFieldsInterceptor,
   FileInterceptor,
 } from '@nestjs/platform-express';
-import { join } from 'path';
 
 import { AuthForgetDto } from './dto/auth-forget.dto';
 import { AuthResetDto } from './dto/auth-reset.dto';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import { AuthRegisterDto } from './dto/auth-register.dto';
-import { UserService } from 'src/user/user.service';
 import { AuthService } from './auth.service';
-import { AuthGuard } from 'src/guards/auth.guard';
-import { User } from 'src/decorators/user.decorator';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { FileService } from 'src/file/file.service';
+import { FileService } from '../file/file.service';
+import { AuthGuard } from '../guards/auth.guard';
+import { User } from '../decorators/user.decorator';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UserEntity } from '../user/entity/user.entity';
 
 @Controller('auth')
-export class AuthControler {
+export class AuthController {
   constructor(
-    private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly fileService: FileService,
   ) {}
@@ -59,15 +57,17 @@ export class AuthControler {
 
   @UseGuards(AuthGuard)
   @Post('me')
-  async me(@User(['name', 'email', 'password', 'role']) user: CreateUserDto) {
-    return { user };
+  async me(
+    @User(['id', 'name', 'email', 'password', 'role']) user: CreateUserDto,
+  ) {
+    return user;
   }
 
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(AuthGuard)
   @Post('photo')
   async uploadPhoto(
-    @User() user,
+    @User() user: UserEntity,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -78,22 +78,15 @@ export class AuthControler {
     )
     photo: Express.Multer.File,
   ) {
-    const path = join(
-      __dirname,
-      '..',
-      '..',
-      'storage',
-      'photos',
-      `potho-${user.id}.png`,
-    );
+    const filename = `photo-${user.id}.png`;
 
     try {
-      await this.fileService.upload(photo, path);
+      await this.fileService.upload(photo, filename);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
 
-    return { success: true };
+    return photo;
   }
 
   @Post('upload')

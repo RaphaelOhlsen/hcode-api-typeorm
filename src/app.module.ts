@@ -7,11 +7,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { UserEntity } from './user/entity/user.entity';
 import { UserModule } from './user/user.module';
 
+const MAIL_HOST = process.env.MAIL_HOST;
+console.log(MAIL_HOST);
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
@@ -20,11 +25,11 @@ import { UserModule } from './user/user.module';
     AuthModule,
     MailerModule.forRoot({
       transport: {
-        host: process.env.MAIL_HOST,
-        port: Number(process.env.MAIL_PORT) || 587,
+        host: 'smtpout.secureserver.net',
+        port: Number(process.env.MAIL_PORT) || 465,
         auth: {
           user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASSWORD,
+          pass: process.env.MAIL_PASS,
         },
       },
       defaults: {
@@ -45,7 +50,7 @@ import { UserModule } from './user/user.module';
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [],
+      entities: [UserEntity],
       synchronize: process.env.NODE_ENV === 'development' ? true : false,
     }),
   ],
